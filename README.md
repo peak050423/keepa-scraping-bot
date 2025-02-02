@@ -71,5 +71,5 @@ Usage:
 ## Run the Script
 
 ```bash
-python newSkriptKeepa.py
+python main.py
 ```
