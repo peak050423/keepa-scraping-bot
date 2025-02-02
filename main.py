@@ -11,8 +11,10 @@ import time
 import pandas as pd
 import os
 import tkinter as tk
+import requests
 from tkinter import Tk, filedialog, messagebox
 from RecaptchaSolver import RecaptchaSolver
+from bs4 import BeautifulSoup
 
 # Chrome settings
 chrome_options = Options()
@@ -79,13 +81,9 @@ try:
     time.sleep(5)
 
     try:
-        # t0 = time.time()
-        driver.find_element(By.ID, "popupTitle")
+        driver.find_element(By.ID, "popup3")
         print("Captcha is present")
-        # check_box = wait.until(EC.element_to_be_clickable((By.ID, "recaptcha-anchor")))
         recaptchaSolver.solve()
-        # print(f"Time to solve the captcha: {time.time()-t0:.2f} seconds")
-        # driver.find_element(By.ID, "recaptcha-demo-submit").click()
         time.sleep(2)
 
     except Exception as e:
@@ -109,20 +107,16 @@ try:
             break
 
         try:
-            print(f"Processing row {index}...")
-            
-            try:
-                # t0 = time.time()
-                driver.find_element(By.ID, "popupTitle")
-                print("Captcha is present")
-                # check_box = wait.until(EC.element_to_be_clickable((By.ID, "recaptcha-anchor")))
-                recaptchaSolver.solve()
-                # print(f"Time to solve the captcha: {time.time()-t0:.2f} seconds")
-                # driver.find_element(By.ID, "recaptcha-demo-submit").click()
-                time.sleep(2)
+            driver.find_element(By.CLASS_NAME, "popup3")
+            print("Captcha is present")
+            recaptchaSolver.solve()
+            time.sleep(2)
 
-            except Exception as e:
-                print(f"Captcha is not present")
+        except Exception as e:
+            print(f"Captcha is not present")
+
+        try:
+            print(f"Processing row {index}...")
                     
             for attempt in range(3):
                 try:
@@ -130,6 +124,23 @@ try:
                     break  # Exit the loop if the click is successful
                 except Exception:
                     time.sleep(1)
+            
+     
+            # if driver.find_element(By.ID, "networkBar"):
+            #     print("An error occurred - trying reloading Keepa.")
+            #     driver.refresh()
+            #     time.sleep(2)
+            # else:
+            #     print(f"NetworkBar is not present")
+
+            try:
+                driver.find_element(By.CLASS_NAME, "popup3")
+                print("Captcha is present")
+                recaptchaSolver.solve()
+                time.sleep(2)
+
+            except Exception as e:
+                print(f"Captcha is not present")
 
             value_b2 = row['ASIN']
             print(f"Value in the second column, row {index}: {value_b2}")
@@ -151,6 +162,15 @@ try:
             price_watch_tab.click()
             time.sleep(1)
 
+            try:
+                driver.find_element(By.CLASS_NAME, "popup3")
+                print("Captcha is present")
+                recaptchaSolver.solve()
+                time.sleep(2)
+
+            except Exception as e:
+                print(f"Captcha is not present")
+
             try: 
                 driver.find_element(By.ID, "updateTracking")
                 print(f"You are already tracking this product.")
@@ -170,6 +190,15 @@ try:
             multi_shop_toggle = wait.until(EC.element_to_be_clickable((By.CLASS_NAME, "tracking__tab-bar-toggle-hint")))
             multi_shop_toggle.click()
             time.sleep(1)
+
+            try:
+                driver.find_element(By.CLASS_NAME, "popup3")
+                print("Captcha is present")
+                recaptchaSolver.solve()
+                time.sleep(2)
+
+            except Exception as e:
+                print(f"Captcha is not present")
 
             france_checkbox = wait.until(EC.presence_of_element_located((By.ID, "multilocale-4-checkbox")))
             italy_checkbox = wait.until(EC.presence_of_element_located((By.ID, "multilocale-8-checkbox")))
@@ -199,9 +228,15 @@ try:
                         time.sleep(1)
 
             submit_tracking_button = wait.until(EC.element_to_be_clickable((By.ID, "submitTracking")))
-            # submit_tracking_button.click()
-            # time.sleep(1)
+           
+            try:
+                driver.find_element(By.CLASS_NAME, "popup3")
+                print("Captcha is present")
+                recaptchaSolver.solve()
+                time.sleep(2)
 
+            except Exception as e:
+                print(f"Captcha is not present")
 
             for attempt in range(3):
                 try:
@@ -210,6 +245,20 @@ try:
                 except Exception:
                     time.sleep(1)  # Wait and retry if the click is intercepted+
 
+            try:
+                # t0 = time.time()
+                driver.find_element(By.CLASS_NAME, "popup3")
+                print("Captcha is present")
+                # check_box = wait.until(EC.element_to_be_clickable((By.ID, "recaptcha-anchor")))
+                recaptchaSolver.solve()
+                # print(f"Time to solve the captcha: {time.time()-t0:.2f} seconds")
+                # driver.find_element(By.ID, "recaptcha-demo-submit").click()
+                time.sleep(2)
+
+            except Exception as e:
+                print(f"Captcha is not present")
+            
+            time.sleep(2)
 
             df.at[index, 'Check'] = 'x'
             print(f"Process completed for row {index}.")
@@ -222,10 +271,35 @@ try:
     print("Updated file saved.")
 
 except Exception as e:
-    print(f"An issue occurred: {e}")
+    # print(f"An issue occurred: {e}")
+    # html_source = driver.page_source
+    # with open("saved_page.html", "w", encoding="utf-8") as file:
+    #     file.write(html_source)
+    # Get the page source
     html_source = driver.page_source
+    soup = BeautifulSoup(html_source, "html.parser")
+    print(soup)
+
+    # Find and inline all CSS styles
+    for link in soup.find_all("link", {"rel": "stylesheet"}):
+        css_url = link["href"]
+        if not css_url.startswith("http"):  # Convert relative URLs to absolute
+            css_url = driver.current_url + css_url
+        print(soup)
+
+        try:
+            response = requests.get(css_url)
+            style_tag = soup.new_tag("style")
+            style_tag.string = response.text
+            soup.head.append(style_tag)
+            link.extract()  # Remove the original <link> tag
+        except:
+            pass  # Skip if CSS file cannot be loaded
+
+    print(soup)
+    # Save the modified HTML
     with open("saved_page.html", "w", encoding="utf-8") as file:
-        file.write(html_source)
+        file.write(str(soup))
 
 finally:
     stop = time.time()
