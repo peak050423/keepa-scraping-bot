@@ -15,6 +15,7 @@ import requests
 from tkinter import Tk, filedialog, messagebox
 from RecaptchaSolver import RecaptchaSolver
 from bs4 import BeautifulSoup
+from urllib.parse import urljoin
 
 # Chrome settings
 chrome_options = Options()
@@ -42,6 +43,27 @@ def show_warning():
     button.pack()
 
     root.mainloop()
+
+def save_page_with_inline_css(filename="saved_page.html"):
+    """Saves the current page with CSS inlined."""
+    html_source = driver.page_source
+    soup = BeautifulSoup(html_source, "html.parser")
+
+    for link in soup.find_all("link", {"rel": "stylesheet"}):
+        css_url = link["href"]
+        css_url = urljoin(driver.current_url, css_url)  # Correctly resolve URL
+
+        try:
+            response = requests.get(css_url)
+            style_tag = soup.new_tag("style")
+            style_tag.string = response.text
+            soup.head.append(style_tag)
+            link.extract()  # Remove <link> tag
+        except:
+            pass  # Ignore if CSS file can't be loaded
+
+    with open(filename, "w", encoding="utf-8") as file:
+        file.write(str(soup))
 
 try:
     start = time.time()
@@ -271,35 +293,8 @@ try:
     print("Updated file saved.")
 
 except Exception as e:
-    # print(f"An issue occurred: {e}")
-    # html_source = driver.page_source
-    # with open("saved_page.html", "w", encoding="utf-8") as file:
-    #     file.write(html_source)
-    # Get the page source
-    html_source = driver.page_source
-    soup = BeautifulSoup(html_source, "html.parser")
-    print(soup)
-
-    # Find and inline all CSS styles
-    for link in soup.find_all("link", {"rel": "stylesheet"}):
-        css_url = link["href"]
-        if not css_url.startswith("http"):  # Convert relative URLs to absolute
-            css_url = driver.current_url + css_url
-        print(soup)
-
-        try:
-            response = requests.get(css_url)
-            style_tag = soup.new_tag("style")
-            style_tag.string = response.text
-            soup.head.append(style_tag)
-            link.extract()  # Remove the original <link> tag
-        except:
-            pass  # Skip if CSS file cannot be loaded
-
-    print(soup)
-    # Save the modified HTML
-    with open("saved_page.html", "w", encoding="utf-8") as file:
-        file.write(str(soup))
+    print(f"An issue occurred: {e}")
+    save_page_with_inline_css()
 
 finally:
     stop = time.time()
